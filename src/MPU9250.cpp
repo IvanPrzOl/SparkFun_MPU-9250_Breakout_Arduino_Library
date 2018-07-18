@@ -605,8 +605,8 @@ void MPU9250::magCalMPU9250(float * bias_dest, float * scale_dest)
   uint16_t ii = 0, sample_count = 0;
   int32_t mag_bias[3]  = {0, 0, 0},
           mag_scale[3] = {0, 0, 0};
-  int16_t mag_max[3]  = {0x8000, 0x8000, 0x8000},
-          mag_min[3]  = {0x7FFF, 0x7FFF, 0x7FFF},
+  int16_t mag_max[3]  = {-32767, -32767, -32767},
+          mag_min[3]  = {32767, 32767, 32767},
           mag_temp[3] = {0, 0, 0};
 
   // Make sure resolution has been calculated
@@ -729,8 +729,7 @@ uint8_t MPU9250::writeByteWire(uint8_t deviceAddress, uint8_t registerAddress,
   Wire.write(registerAddress);      // Put slave register address in Tx buffer
   Wire.write(data);                 // Put data in Tx buffer
   Wire.endTransmission();           // Send the Tx buffer
-  // TODO: Fix this to return something meaningful
-  return NULL;
+  return 0;
 }
 
 // Read a byte from given register on device. Calls necessary SPI or I2C
