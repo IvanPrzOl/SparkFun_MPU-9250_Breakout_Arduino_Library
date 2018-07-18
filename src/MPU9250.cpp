@@ -495,8 +495,8 @@ void MPU9250::MPU9250SelfTest(float * destination)
   // Get average current values of gyro and acclerometer
   for (int ii = 0; ii < 200; ii++)
   {
-Serial.print("BHW::ii = ");
-Serial.println(ii);
+  //Serial.print("BHW::ii = ");
+  //Serial.println(ii);
     // Read the six raw data registers into data array
     readBytes(MPU9250_ADDRESS, ACCEL_XOUT_H, 6, &rawData[0]);
     // Turn the MSB and LSB into a signed 16-bit value
@@ -612,10 +612,9 @@ void MPU9250::magCalMPU9250(float * bias_dest, float * scale_dest)
   // Make sure resolution has been calculated
   getMres();
 
-  Serial.println(F("Mag Calibration: Wave device in a figure 8 until done!"));
-  Serial.println(
-      F("  4 seconds to get ready followed by 15 seconds of sampling)"));
-  delay(4000);
+  //Serial.println(F("Mag Calibration: Wave device in a figure 8 until done!"));
+  //Serial.println(F("  4 seconds to get ready followed by 15 seconds of sampling)"));
+  //delay(4000);
 
   // shoot for ~fifteen seconds of mag data
   // at 8 Hz ODR, new mag data is available every 125 ms
@@ -687,7 +686,7 @@ void MPU9250::magCalMPU9250(float * bias_dest, float * scale_dest)
   scale_dest[1] = avg_rad / ((float)mag_scale[1]);
   scale_dest[2] = avg_rad / ((float)mag_scale[2]);
 
-  Serial.println(F("Mag Calibration done!"));
+  //Serial.println(F("Mag Calibration done!"));
 }
 
 // Wire.h read and write protocols
@@ -917,10 +916,10 @@ bool MPU9250::magInit()
 
   // TODO: Remove this code
   uint8_t ret = ak8963WhoAmI_SPI();
-#ifdef SERIAL_DEBUG
-  Serial.print("MPU9250::magInit to return ");
-  Serial.println((ret == 0x48) ? "true" : "false");
-#endif
+  #ifdef SERIAL_DEBUG
+    Serial.print("MPU9250::magInit to return ");
+    Serial.println((ret == 0x48) ? "true" : "false");
+  #endif
   return ret == 0x48;
 }
 
