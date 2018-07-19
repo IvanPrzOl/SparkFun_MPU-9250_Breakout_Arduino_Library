@@ -2,7 +2,7 @@
 #include "MPU9250.h"
 
 #define SerialDebug true  // Set to true to get Serial output for debugging
-#define PrintRate 500 //Serial print update rate
+#define PrintRate 300 //Serial print update rate
 #define MagDeclination 4.5 //Magnetic declination of San Luis Huexotla, Texcoco
 #define myLed 13 //Set up pin 13 lED for toggling
 
@@ -20,7 +20,7 @@ void setup()
     byte c = myIMU.readByte(MPU9250_ADDRESS, WHO_AM_I_MPU9250);
     byte d = myIMU.readByte(AK8963_ADDRESS, WHO_AM_I_AK8963);
 
-    if (c == 0x71 && d == 0x48) //i2c adress of the Acc+gyro and the Magnetometer
+    if ((c == 0x71) && (d == 0x48)) //i2c adress of the Acc+gyro and the Magnetometer
     {
         //Start by performing a self test witout reporting values
         myIMU.MPU9250SelfTest(myIMU.selfTest);
@@ -101,74 +101,18 @@ void loop()
                            myIMU.gy * DEG_TO_RAD, myIMU.gz * DEG_TO_RAD, myIMU.my,
                            myIMU.mx, -myIMU.mz, myIMU.deltat);
 
-    //Serial print at 0.5 s rate independent of data rates
+    //Serial print at independent rate of data rates
     myIMU.delt_t = millis() - myIMU.count;
     if (myIMU.delt_t > PrintRate)
     {
-        if (SerialDebug)
-        {
-            Serial.print("ax = ");  Serial.print((int)1000 * myIMU.ax);
-            Serial.print(" ay = "); Serial.print((int)1000 * myIMU.ay);
-            Serial.print(" az = "); Serial.print((int)1000 * myIMU.az);
-            Serial.println(" mg");
-            Serial.print("gx = ");  Serial.print(myIMU.gx, 2);
-            Serial.print(" gy = "); Serial.print(myIMU.gy, 2);
-            Serial.print(" gz = "); Serial.print(myIMU.gz, 2);
-            Serial.println(" deg/s");
-            Serial.print("mx = ");  Serial.print((int)myIMU.mx);
-            Serial.print(" my = "); Serial.print((int)myIMU.my);
-            Serial.print(" mz = "); Serial.print((int)myIMU.mz);
-            Serial.println(" mG");
-            Serial.print("q0 = ");  Serial.print(*getQ());
-            Serial.print(" qx = "); Serial.print(*(getQ() + 1));
-            Serial.print(" qy = "); Serial.print(*(getQ() + 2));
-            Serial.print(" qz = "); Serial.println(*(getQ() + 3));
-        }//if(SerialDebug)
+            Serial.print(*getQ(),8);
+            Serial.print(" ");
+            Serial.print(*(getQ() + 1),8);
+            Serial.print(" ");
+            Serial.print(*(getQ() + 2),8);
+            Serial.print(" ");
+            Serial.println(*(getQ() + 3),8);
 
-        // Define output variables from updated quaternion---these are Tait-Bryan
-        // angles, commonly used in aircraft orientation. In this coordinate system,
-        // the positive z-axis is down toward Earth. Yaw is the angle between Sensor
-        // x-axis and Earth magnetic North (or true North if corrected for local
-        // declination, looking down on the sensor positive yaw is counterclockwise.
-        // Pitch is angle between sensor x-axis and Earth ground plane, toward the
-        // Earth is positive, up toward the sky is negative. Roll is angle between
-        // sensor y-axis and Earth ground plane, y-axis up is positive roll. These
-        // arise from the definition of the homogeneous rotation matrix constructed
-        // from quaternions. Tait-Bryan angles as well as Euler angles are
-        // non-commutative; that is, the get the correct orientation the rotations
-        // must be applied in the correct order which for this configuration is yaw,
-        // pitch, and then roll.
-        // For more see
-        // http://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
-        // which has additional links.
-          myIMU.yaw   = atan2(2.0f * (*(getQ()+1) * *(getQ()+2) + *getQ()
-                        * *(getQ()+3)), *getQ() * *getQ() + *(getQ()+1)
-                        * *(getQ()+1) - *(getQ()+2) * *(getQ()+2) - *(getQ()+3)
-                        * *(getQ()+3));
-          myIMU.pitch = -asin(2.0f * (*(getQ()+1) * *(getQ()+3) - *getQ()
-                        * *(getQ()+2)));
-          myIMU.roll  = atan2(2.0f * (*getQ() * *(getQ()+1) + *(getQ()+2)
-                        * *(getQ()+3)), *getQ() * *getQ() - *(getQ()+1)
-                        * *(getQ()+1) - *(getQ()+2) * *(getQ()+2) + *(getQ()+3)
-                        * *(getQ()+3));
-          myIMU.pitch *= RAD_TO_DEG;
-          myIMU.yaw   *= RAD_TO_DEG;
-          // Declination of san Luis Huexotla, Texcoco
-          myIMU.yaw  -= MagDeclination;
-          myIMU.roll *= RAD_TO_DEG;
-
-          if(SerialDebug)
-          {
-            Serial.print("Yaw, Pitch, Roll: ");
-            Serial.print(myIMU.yaw, 2);
-            Serial.print(", ");
-            Serial.print(myIMU.pitch, 2);
-            Serial.print(", ");
-            Serial.println(myIMU.roll, 2);
-            Serial.print("rate = ");
-            Serial.print((float)myIMU.sumCount / myIMU.sum, 2);
-            Serial.println(" Hz");
-          }//if(SerialDebug)
         myIMU.count = millis();
         myIMU.sumCount = 0;
         myIMU.sum = 0; 
