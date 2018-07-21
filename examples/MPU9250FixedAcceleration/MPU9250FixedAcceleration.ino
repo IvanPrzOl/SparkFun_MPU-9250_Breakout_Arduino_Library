@@ -1,7 +1,7 @@
 #include "quaternionFilters.h"
 #include "MPU9250.h"
 
-#define SerialDebug true  // Set to true to get Serial output for debugging
+#define SerialDebug false  // Set to true to get Serial output for debugging
 #define PrintRate 300 //Serial print update rate
 #define MagDeclination 4.5 //Magnetic declination of San Luis Huexotla, Texcoco
 #define myLed 13 //Set up pin 13 lED for toggling
@@ -18,9 +18,13 @@ void setup()
  
     //Read WHO_I_AM register, this a good test for communication
     byte c = myIMU.readByte(MPU9250_ADDRESS, WHO_AM_I_MPU9250);
-    byte d = myIMU.readByte(AK8963_ADDRESS, WHO_AM_I_AK8963);
 
-    if ((c == 0x71) && (d == 0x48)) //i2c adress of the Acc+gyro and the Magnetometer
+    if (c != 0x71) //i2c adress of the Acc+gyro and the Magnetometer
+    {
+        Serial.println("Could not connect to MPU9250");
+        Serial.println("Communication failed, abort");
+    } //if (c == 0x71)
+    else
     {
         //Start by performing a self test witout reporting values
         myIMU.MPU9250SelfTest(myIMU.selfTest);
@@ -31,28 +35,35 @@ void setup()
         //Initialize device for active mode read of Acc,gyro an temperature
         myIMU.initMPU9250();
 
-        // Get factory magnetometer calibration from AK8963 ROM
-        myIMU.initAK8963(myIMU.factoryMagCalibration);
-
-        //Get sensor resolutions, to change the resolution we need to edit the library header file
-        myIMU.getAres(); //by default, 2g
-        myIMU.getGres(); //by default, 250 dps
-        myIMU.getMres(); //by default, 16 bits
-
-        //Calculate magnetometer bias and scale
-        myIMU.magCalMPU9250(myIMU.magBias, myIMU.magScale);
-
-        //*****Magnetometer bias and scale user values*****
-        myIMU.magBias[0] = 576.475;
-        myIMU.magBias[1] = 11.9150;
-        myIMU.magBias[2] = -360.2050;
-        //********** 
-    }//if (c == 0x71 && d == 0x48)
-    else
-    {
-        Serial.println("Could not connect to MPU9250");
-        Serial.println("Communication failed, abort");
-        abort();
+        //After initialize the Acc+gyro, we can acces to the magnetometer
+        byte d = myIMU.readByte(AK8963_ADDRESS, WHO_AM_I_AK8963);
+        #if SerialDebug
+            Serial.print("MPU9250 adress: ");
+            Serial.println(c,HEX);
+            Serial.print("AK8963 adress: ");
+            Serial.println(d,HEX);
+        #endif
+        
+        if (d == 0x48)
+        {
+            // Get factory magnetometer calibration from AK8963 ROM
+            myIMU.initAK8963(myIMU.factoryMagCalibration);
+            //Get sensor resolutions, to change the resolution we need to edit the library header file
+            myIMU.getAres(); //by default, 2g
+            myIMU.getGres(); //by default, 250 dps
+            myIMU.getMres(); //by default, 16 bits
+            //Calculate magnetometer bias and scale
+            //myIMU.magCalMPU9250(myIMU.magBias, myIMU.magScale);
+            //*****Magnetometer bias and scale user values*****
+            myIMU.magBias[0] = 576.475;
+            myIMU.magBias[1] = 11.9150;
+            myIMU.magBias[2] = -360.2050;
+            //**********
+        } //if (d == 0x48)
+        else
+        {
+            Serial.println("Failed to connect AK8963");
+        }
     }
     digitalWrite(myLed,LOW);
 }//setup
