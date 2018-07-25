@@ -6,6 +6,16 @@
 #define MagDeclination 4.5 //Magnetic declination of San Luis Huexotla, Texcoco
 #define myLed 13 //Set up pin 13 lED for toggling
 
+//macros
+#define q(A) (*(getQ()+A))
+
+//function prototypes
+void printRotation(void);
+
+// Global variables
+float vel[3] = {0,0,0};
+float pos[3] = {0,0,0};
+
 MPU9250 myIMU;
 
 void setup()
@@ -111,21 +121,60 @@ void loop()
     MahonyQuaternionUpdate(myIMU.ax, myIMU.ay, myIMU.az, myIMU.gx * DEG_TO_RAD,
                            myIMU.gy * DEG_TO_RAD, myIMU.gz * DEG_TO_RAD, myIMU.my,
                            myIMU.mx, -myIMU.mz, myIMU.deltat);
+    
+    //Quaternion to rotation matrix
+    float R[9] = { 1-( 2*q(2)*q(2) )-( 2*q(3)*q(3) ), 2*q(1)*q(2)-2*q(0)*q(3), 2*q(1)*q(3)+2*q(0)*q(2),
+                   2*q(1)*q(2)+2*q(0)*q(3), 1-( 2*q(1)*q(1) )-( 2*q(3)*q(3) ), 2*q(2)*q(3)-2*q(0)*q(1),
+                   2*q(1)*q(3)-2*q(0)*q(2), 2*q(2)*q(3)+2*q(0)*q(1), 1-( 2*q(1)*q(1) )-( 2*q(2)*q(2) ) }; 
+    // 'tilt-compensated acceleration' and calculate the acceleration in earth frame
+    float v[3] = {R[0]*myIMU.ax + R[1]*myIMU.ay + R[2]*myIMU.az, 
+                  R[3]*myIMU.ax + R[4]*myIMU.ay + R[5]*myIMU.az,
+                  (R[6]*myIMU.ax + R[7]*myIMU.ay + R[8]*myIMU.az) - 1  };
 
     //Serial print at independent rate of data rates
     myIMU.delt_t = millis() - myIMU.count;
     if (myIMU.delt_t > PrintRate)
     {
-            Serial.print(*getQ(),8);
+            /*Serial.print(q(0),8);
             Serial.print(" ");
-            Serial.print(*(getQ() + 1),8);
+            Serial.print(q(1),8);
             Serial.print(" ");
-            Serial.print(*(getQ() + 2),8);
+            Serial.print(q(2),8);
             Serial.print(" ");
-            Serial.println(*(getQ() + 3),8);
+            Serial.println(q(3),8);*/
+
+
+            Serial.print(v[0]*9.8);
+            Serial.print(" ");
+            Serial.print(v[1]*9.8);
+            Serial.print(" ");
+            Serial.println(v[2]*9.8);
 
         myIMU.count = millis();
         myIMU.sumCount = 0;
         myIMU.sum = 0; 
     }//if (myIMU.delt_t > PrintRate)
 }//loop
+
+void printRotation(void)
+{
+    Serial.print(R[0]);
+    Serial.print(" ");
+    Serial.print(R[1]);
+    Serial.print(" ");
+    Serial.println(R[2]);
+    Serial.print(" ");
+    Serial.print(R[3]);
+    Serial.print(" ");
+    Serial.print(R[4]);
+    Serial.print(" ");
+    Serial.println(R[5]);
+    Serial.print(" ");
+    Serial.print(R[6]);
+    Serial.print(" ");
+    Serial.print(R[7]);
+    Serial.print(" ");
+    Serial.println(R[8]);
+    Serial.print(" ");
+    Serial.println(" ");
+}
