@@ -10,11 +10,17 @@
 #define q(A) (*(getQ()+A))
 
 //function prototypes
-void printRotation(void);
+void printRotation(float*);
+void highPassF(float*,float*,float*);
 
 // Global variables
-float vel[3] = {0,0,0};
-float pos[3] = {0,0,0};
+float uVel[3] = {0.0,0.0,0.0}; // current unfiltered linear velocity
+float uVelPrev[3] = {0.0,0.0,0.0}; // previous unfiltered linear velocity
+float vel[3] = {0.0,0.0,0.0}; // filtered linear velocity
+
+//float uPos[3] = {0.0,0.0,0.0}; // current unfiltered Linear position
+//float uPosPrev[3] = {0.0,0.0,0.0}; // previous unfiltered Linear position
+//float pos[3] = {0.0,0.0,0.0}; // filtered Linear position
 
 MPU9250 myIMU;
 
@@ -131,6 +137,13 @@ void loop()
                   R[3]*myIMU.ax + R[4]*myIMU.ay + R[5]*myIMU.az,
                   (R[6]*myIMU.ax + R[7]*myIMU.ay + R[8]*myIMU.az) - 1  };
 
+    // Calculate unfiltered linear velocity (integrate linear acceleration)
+    uVel[0] = uVelPrev[0] + myIMU.deltat*(v[0]*9.81);
+    uVel[1] = uVelPrev[1] + myIMU.deltat*(v[1]*9.81);
+    uVel[2] = uVelPrev[2] + myIMU.deltat*(v[2]*9.81);
+    // Filter velocity
+    highPassF(uVel,uVelPrev,vel);
+
     //Serial print at independent rate of data rates
     myIMU.delt_t = millis() - myIMU.count;
     if (myIMU.delt_t > PrintRate)
@@ -144,11 +157,11 @@ void loop()
             Serial.println(q(3),8);*/
 
 
-            Serial.print(v[0]*9.8);
+            Serial.print(vel[0]);
             Serial.print(" ");
-            Serial.print(v[1]*9.8);
+            Serial.print(vel[1]);
             Serial.print(" ");
-            Serial.println(v[2]*9.8);
+            Serial.println(vel[2]);
 
         myIMU.count = millis();
         myIMU.sumCount = 0;
@@ -156,7 +169,7 @@ void loop()
     }//if (myIMU.delt_t > PrintRate)
 }//loop
 
-void printRotation(void)
+void printRotation(float *R)
 {
     Serial.print(R[0]);
     Serial.print(" ");
@@ -177,4 +190,13 @@ void printRotation(void)
     Serial.println(R[8]);
     Serial.print(" ");
     Serial.println(" ");
+}
+
+void highPassF(float* Xn,float* Xprev,float* Y)
+{
+    for (int k=0;k<3;k++)
+    {
+    Y[k] = 0.99*Xn[k] - 0.99*Xprev[k] + 0.99*Y[k];
+    Xprev[k] = Xn[k];
+    }
 }
