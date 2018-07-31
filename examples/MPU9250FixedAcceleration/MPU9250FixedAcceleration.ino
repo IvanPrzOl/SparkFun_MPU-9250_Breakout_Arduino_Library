@@ -2,7 +2,7 @@
 #include "MPU9250.h"
 
 #define SerialDebug false  // Set to true to get Serial output for debugging
-#define PrintRate 300 //Serial print update rate
+#define PrintRate 100 //Serial print update rate
 #define MagDeclination 4.5 //Magnetic declination of San Luis Huexotla, Texcoco
 #define myLed 13 //Set up pin 13 lED for toggling
 
@@ -18,9 +18,11 @@ float uVel[3] = {0.0,0.0,0.0}; // current unfiltered linear velocity
 float uVelPrev[3] = {0.0,0.0,0.0}; // previous unfiltered linear velocity
 float vel[3] = {0.0,0.0,0.0}; // filtered linear velocity
 
-//float uPos[3] = {0.0,0.0,0.0}; // current unfiltered Linear position
-//float uPosPrev[3] = {0.0,0.0,0.0}; // previous unfiltered Linear position
-//float pos[3] = {0.0,0.0,0.0}; // filtered Linear position
+float uPos[3] = {0.0,0.0,0.0}; // current unfiltered Linear position
+float uPosPrev[3] = {0.0,0.0,0.0}; // previous unfiltered Linear position
+float pos[3] = {0.0,0.0,0.0}; // filtered Linear position
+
+int conv = 500; // wait for algorithm convergence
 
 MPU9250 myIMU;
 
@@ -46,7 +48,7 @@ void setup()
         myIMU.MPU9250SelfTest(myIMU.selfTest);
 
         // Calibrate gyro and accelerometers, load biases in bias registers
-        myIMU.calibrateMPU9250(myIMU.gyroBias, myIMU.accelBias);
+        //myIMU.calibrateMPU9250(myIMU.gyroBias, myIMU.accelBias);
 
         //Initialize device for active mode read of Acc,gyro an temperature
         myIMU.initMPU9250();
@@ -127,7 +129,12 @@ void loop()
     MahonyQuaternionUpdate(myIMU.ax, myIMU.ay, myIMU.az, myIMU.gx * DEG_TO_RAD,
                            myIMU.gy * DEG_TO_RAD, myIMU.gz * DEG_TO_RAD, myIMU.my,
                            myIMU.mx, -myIMU.mz, myIMU.deltat);
-    
+    if (conv != 0 )
+    {
+        conv--;
+    }
+    else 
+    {
     //Quaternion to rotation matrix
     float R[9] = { 1-( 2*q(2)*q(2) )-( 2*q(3)*q(3) ), 2*q(1)*q(2)-2*q(0)*q(3), 2*q(1)*q(3)+2*q(0)*q(2),
                    2*q(1)*q(2)+2*q(0)*q(3), 1-( 2*q(1)*q(1) )-( 2*q(3)*q(3) ), 2*q(2)*q(3)-2*q(0)*q(1),
@@ -144,6 +151,13 @@ void loop()
     // Filter velocity
     highPassF(uVel,uVelPrev,vel);
 
+    //Calculate unfiltered linear position
+    uPos[0] = uPosPrev[0] + uVel[0]*myIMU.deltat;
+    uPos[1] = uPosPrev[1] + uVel[1]*myIMU.deltat;
+    uPos[2] = uPosPrev[2] + uVel[2]*myIMU.deltat;
+    // Filter position
+    highPassF(uPos,uPosPrev,pos);
+
     //Serial print at independent rate of data rates
     myIMU.delt_t = millis() - myIMU.count;
     if (myIMU.delt_t > PrintRate)
@@ -157,16 +171,17 @@ void loop()
             Serial.println(q(3),8);*/
 
 
-            Serial.print(vel[0]);
+            Serial.print(v[0]);
             Serial.print(" ");
-            Serial.print(vel[1]);
+            Serial.print(v[1]);
             Serial.print(" ");
-            Serial.println(vel[2]);
+            Serial.println(v[2]);
 
         myIMU.count = millis();
         myIMU.sumCount = 0;
         myIMU.sum = 0; 
     }//if (myIMU.delt_t > PrintRate)
+    }
 }//loop
 
 void printRotation(float *R)
